@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Special Offer</string>
+			<key>UIApplicationShortcutItemSubtitle</key>
+			<string>Check out our limited time offer!</string>
+            <key>UIApplicationShortcutItemIconSymbolName</key>
+            <string>sparkles</string>
+			<key>UIApplicationShortcutItemType</key>
+			<string>offer-action</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Feature Request</string>
+			<key>UIApplicationShortcutItemSubtitle</key>
+			<string>Request a new feature</string>
+            <key>UIApplicationShortcutItemIconSymbolName</key>
+            <string>lightbulb.min.badge.exclamationmark.fill</string>
+			<key>UIApplicationShortcutItemType</key>
+			<string>wishkit-action</string>
+		</dict>
+	</array>
+</dict>
+</plist>
