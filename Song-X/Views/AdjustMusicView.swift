@@ -9,9 +9,11 @@ import SwiftUI
 import Drops
 import AVFAudio
 import TPackage
+import RevenueCat
 
 struct AdjustMusicView: View {
     @StateObject private var songManager = SongManager.shared
+    @StateObject private var feedbackManager = FeedbackManager.shared
     @State private var selectedEffect: String?
 
     @State private var shareURL: URL?
@@ -28,6 +30,12 @@ struct AdjustMusicView: View {
     @State private var dragOffset: Double = 0
 
     @EnvironmentObject var premiumManager: TKPremiumManager
+
+    @State private var adjustmentCount = 0
+
+    @AppStorage("hasGivenFirstFeedback") private var hasGivenFirstFeedback = false
+    @AppStorage("isFirstTimeUser") private var isFirstTimeUser = true
+    @AppStorage("lastFeedbackDate") private var lastFeedbackDate: Double = 0
 
     let effects: [Effect] = [
         Effect(name: "Nightcore", color: .red, isPremium: false),
@@ -95,7 +103,6 @@ struct AdjustMusicView: View {
                             ProgressView(value: currentProgress)
                                 .progressViewStyle(LinearProgressViewStyle(tint: .secondary))
                             
-                            // Sürüklenebilir alan
                             Color.clear
                                 .frame(width: 20, height: 20)
                                 .contentShape(Rectangle())
@@ -176,7 +183,7 @@ struct AdjustMusicView: View {
                         LazyVGrid(columns: [
                             GridItem(.flexible(), spacing: 16),  // Sütunlar arası boşluk 16
                             GridItem(.flexible(), spacing: 16)   // Sütunlar arası boşluk 16
-                        ], spacing: 16) {  // Satırlar arası boşluk 8
+                        ], spacing: 16) {
                             ForEach(effects) { effect in
                                 Button(action: {
                                     if !effect.isPremium || premiumManager.isPremium {
@@ -388,12 +395,15 @@ struct AdjustMusicView: View {
                         // Existing menu
                         Menu {
                             Button(action: {
+                                CreditsManager.shared.useCredit(premiumManager: premiumManager)
                                 songManager.saveAudio()
                                 songManager.compressAudio() { error in
                                     print(error.debugDescription)
                                 }
                                 Drops.show(drop)
                                 isURLSharable = true
+                                
+                                feedbackManager.checkAndShowFeedback()
                             }) {
                                 Label {
                                     Text("Save")
@@ -410,6 +420,7 @@ struct AdjustMusicView: View {
                                     .foregroundStyle(.purple)
                             }
                             .onTapGesture {
+                                CreditsManager.shared.useCredit(premiumManager: premiumManager)
                                 songManager.reset()
                                 songManager.setupAudio()
                             }
@@ -428,19 +439,21 @@ struct AdjustMusicView: View {
             .onAppear(perform: {
                 isShareLinkEnabled()
             })
-            .onChange(of: songManager.rateValue) { newValue in
-                rate = Double(newValue)
-            }
-            .onChange(of: songManager.reverbValue) { newValue in
-                reverb = Double(newValue)
-            }
-            .onChange(of: songManager.pitchValue) { newValue in
-                pitch = Double(newValue)
-            }
             .onDisappear {
                 cleanUp()
                 songManager.changeAudio()
             }
+        }
+        .alert("saved! a little feedback?", isPresented: $feedbackManager.showingFeedback) {
+            TextField("tell us what you think...", text: $feedbackManager.feedbackText)
+            Button("Send") {
+                feedbackManager.sendFeedback(wasCanceled: false, source: "AdjustMusicView")
+            }
+            Button("Cancel", role: .cancel) {
+                feedbackManager.sendFeedback(wasCanceled: true, source: "AdjustMusicView")
+            }
+        } message: {
+            Text("what's one thing we could improve?")
         }
     }
 
@@ -452,7 +465,6 @@ struct AdjustMusicView: View {
     }
 
     func selectEffect(_ effectName: String) {
-        // If the same effect is selected again, reset everything
         if selectedEffect == effectName {
             selectedEffect = nil
             resetAllValues()
@@ -533,7 +545,6 @@ struct AdjustMusicView: View {
         selectedReverbPreset = .mediumRoom
         songManager.isFilterEnabled = false
         selectedEffect = nil
-
     }
 }
 

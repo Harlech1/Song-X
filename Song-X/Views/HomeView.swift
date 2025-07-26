@@ -67,7 +67,7 @@ struct HomeView: View {
             .overlay(alignment: .bottom) {
                 VStack(spacing: 8) {
                     Button {
-                        if creditsManager.canEditMoreSongs(premiumManager: premiumManager) {
+                        if creditsManager.canEditSong(premiumManager: premiumManager) {
                             songManager.filePickerClicked.toggle()
                         } else {
                             showLimitAlert = true
@@ -94,7 +94,7 @@ struct HomeView: View {
             }
             .alert("Daily Limit Reached", isPresented: $showLimitAlert) {
                 Button("Get Premium", role: .none) {
-                    showPaywall = true
+                    showInitialPaywall = true
                 }
                 Button("OK", role: .cancel) { }
             } message: {
@@ -112,7 +112,6 @@ struct HomeView: View {
                             SongManager.shared.pickedURL = url
                             SongManager.shared.pickedSongName = url.deletingPathExtension().lastPathComponent
                             SongManager.shared.setupAudio()
-                            creditsManager.incrementDailyCount(premiumManager: premiumManager)
                             navigateToAdjustView = true
                         }
                     case .failure(let error):
@@ -137,7 +136,7 @@ struct HomeView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "diamond.fill")
                                     .foregroundStyle(.purple)
-                                Text("\(creditsManager.remainingCredits)/\(creditsManager.maxDailyEdits)")
+                                Text("\(creditsManager.remainingFreeSongs)/\(creditsManager.maxFreeSongsPerDay)")
                                     .foregroundStyle(.purple)
                                     .font(.system(.body, design: .rounded, weight: .semibold))
                             }
@@ -156,14 +155,13 @@ struct HomeView: View {
                 loadAudioFiles()
                 await premiumManager.checkPremiumStatus()
                 
-                // First launch
                 if launchCount == 0 {
                     if await NotificationManager.shared.requestPermission() {
                         NotificationManager.shared.scheduleNotifications()
                     }
                 }
-                // Second launch - request review
-                else if launchCount == 1 {
+
+                else if launchCount == 4 {
                     await ratingManager.requestReview()
                 }
                 
@@ -184,31 +182,7 @@ struct HomeView: View {
             OnboardingView()
         }
         .fullScreenCover(isPresented: $showInitialPaywall) {
-            CustomPaywallView(secondDelayOpen: true)
-                .paywallFooter(condensed: true)
-                .onPurchaseCompleted { customerInfo in
-                    Task {
-                        await premiumManager.checkPremiumStatus()
-                        if premiumManager.isPremium {
-                            showInitialPaywall = false
-                            await ratingManager.requestReview()
-                        }
-                    }
-                }
-                .onRestoreCompleted { customerInfo in
-                    Task {
-                        await premiumManager.checkPremiumStatus()
-                        if premiumManager.isPremium {
-                            showInitialPaywall = false
-                            await ratingManager.requestReview()
-                        }
-                    }
-                }
-                .onDisappear {
-                    if !premiumManager.isPremium && !showSpecialOffer && launchCount % 2 == 1 {
-                        showSpecialOffer = true
-                    }
-                }
+            CustomPaywallView()
                 .interactiveDismissDisabled()
         }
         .fullScreenCover(isPresented: $shortcutManager.showSpecialOffer) {

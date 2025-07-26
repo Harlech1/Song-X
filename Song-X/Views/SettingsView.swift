@@ -21,6 +21,7 @@ struct SettingsView: View {
     @State private var showRestoreAlert = false
     @State private var restoreMessage = ""
     @Environment(\.dismiss) var dismiss
+    @StateObject private var feedbackManager = FeedbackManager.shared
 
     var body: some View {
         NavigationStack {
@@ -87,7 +88,7 @@ struct SettingsView: View {
                     })])
                 }
 
-                Section(header: Text("help make songx better")) {
+                Section(header: Text("Help Make Songx Better")) {
                     NavigationLink(destination: WishkitView()){
                         Label(
                             title: { Text("Feature Requests") },
@@ -96,9 +97,20 @@ struct SettingsView: View {
                                 .frame(width: 20, height: 20)}
                         ).labelStyle(.colorful(.yellow))
                     }.foregroundColor(.primary)
+
+                    Button {
+                        feedbackManager.showingFeedback = true
+                    } label: {
+                        Label(
+                            title: { Text("Fast Feedback") },
+                            icon: { Image(systemName: "paperplane.fill")
+                                    .scaledToFit()
+                                .frame(width: 20, height: 20)}
+                        ).labelStyle(.colorful(.purple))
+                    }.foregroundColor(.primary)
                 }
 
-                Section(header: Text("Help us to grow")) {
+                Section(header: Text("Help Us To Grow")) {
                     TKSettingsView(items:
                                     [.init(icon: "square.and.arrow.up",
                                            iconColor: .white,
@@ -144,27 +156,19 @@ struct SettingsView: View {
             } message: {
                 Text(restoreMessage)
             }
+            .alert("saved! a little feedback?", isPresented: $feedbackManager.showingFeedback) {
+                TextField("tell us what you think...", text: $feedbackManager.feedbackText)
+                Button("Send") {
+                    feedbackManager.sendFeedback(wasCanceled: false, source: "SettingsView")
+                }
+                Button("Cancel", role: .cancel) {
+                    feedbackManager.sendFeedback(wasCanceled: true, source: "SettingsView")
+                }
+            } message: {
+                Text("what's one thing we could improve?")
+            }
             .fullScreenCover(isPresented: $showPaywall) {
-                CustomPaywallView(secondDelayOpen: true)
-                    .paywallFooter(condensed: true)
-                    .onPurchaseCompleted { customerInfo in
-                        Task {
-                            await premiumManager.checkPremiumStatus()
-                            if premiumManager.isPremium {
-                                dismiss()
-                                await ratingManager.requestReview()
-                            }
-                        }
-                    }
-                    .onRestoreCompleted { customerInfo in
-                        Task {
-                            await premiumManager.checkPremiumStatus()
-                            if premiumManager.isPremium {
-                                dismiss()
-                                await ratingManager.requestReview()
-                            }
-                        }
-                    }
+                CustomPaywallView()
             }
         }
     }
